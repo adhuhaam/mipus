@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Xpat Lookup",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   formatDetection: {
     telephone: false,
   },
@@ -37,7 +40,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body>
+      <body className="pwa-body">
         {children}
         <PwaRegister />
       </body>
