@@ -1,6 +1,6 @@
 import sharp from "sharp";
 
-/** Resize & enhance document photos for Tesseract OCR. */
+/** Light server preprocess (rotate + resize only — matches xxpat “full image” intent). */
 export async function preprocessOcrImage(input: Buffer): Promise<Buffer> {
   return sharp(input)
     .rotate()
@@ -10,9 +10,6 @@ export async function preprocessOcrImage(input: Buffer): Promise<Buffer> {
       fit: "inside",
       withoutEnlargement: true,
     })
-    .grayscale()
-    .normalize()
-    .sharpen({ sigma: 1 })
     .jpeg({ quality: 92, mozjpeg: true })
     .toBuffer();
 }

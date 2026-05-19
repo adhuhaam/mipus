@@ -2,7 +2,7 @@
 
 ## Cursor Cloud specific instructions
 
-Next.js PWA + Telegram bot for Maldives Xpat work permit lookup.
+Next.js PWA + Telegram bot for Maldives Xpat work permit lookup (official mobile API).
 
 ### Commands
 
@@ -13,19 +13,20 @@ Next.js PWA + Telegram bot for Maldives Xpat work permit lookup.
 
 - `XPAT_API_KEY` — required for lookups
 - `TELEGRAM_BOT_TOKEN` — required for bot
-- `TELEGRAM_WEBHOOK_SECRET` — optional but recommended; must match `scripts/telegram-set-webhook.mjs`
+- `TELEGRAM_WEBHOOK_SECRET` — recommended; must match `setWebhook` / `scripts/telegram-set-webhook.mjs`
+- `SETUP_SECRET` — optional; for `POST /api/telegram/setup`
 
 ### Architecture
 
-- UI: `components/LookupApp.tsx` — manual form + `DocumentScan` → `POST /api/ocr` → lookup
-- OCR: `lib/ocr-scan-server.ts` — **Tesseract.js** + `sharp` preprocess (not PaddleOCR)
-- Telegram: `lib/telegram-handler.ts` — text or photo → OCR or parse → `lib/telegram-process-lookup.ts`
+- UI: `components/LookupApp.tsx` → `DocumentScan` uses **browser** OCR (`lib/ocr-scan-browser.ts`, Tesseract v7)
+- Telegram: `lib/telegram-handler.ts` → **server** OCR (`lib/ocr-scan-server.ts`) → `lib/telegram-process-lookup.ts`
+- Shared extraction: `lib/ocr-extract.ts` (xxpat + label patterns)
+- Telegram text: `lib/format-telegram-message.ts` (sectioned HTML)
 - Proxies: `app/api/work-permit/*`
 
 ### Gotchas
 
 - Both permit + passport required upstream (400 if one missing).
-- Bot 401 = `TELEGRAM_WEBHOOK_SECRET` mismatch with Telegram `secret_token`.
-- OCR routes: `maxDuration = 60` in route + `vercel.json`.
-- Tesseract: `outputFileTracingIncludes` must bundle `tesseract.js-core/*.wasm` (ENOENT on Vercel otherwise).
-- PWA service worker v2: network-first HTML; do not cache `/_next` chunks.
+- Bot needs **webhook registration** (`telegram-set-webhook.mjs` or `/api/telegram/setup`).
+- WASM: `outputFileTracingIncludes` only on `/api/telegram/webhook` in `next.config.ts`.
+- PWA service worker: network-first HTML; do not cache `/_next` chunks.

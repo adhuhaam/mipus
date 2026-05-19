@@ -4,14 +4,13 @@ export type ParsedPermitInput =
 
 const HELP_TEXT = `<b>Xpat Lookup bot</b>
 
-<b>Option 1 — two lines of text:</b>
+<b>Text</b> — two lines (permit, then passport):
 <code>WP00595305</code>
 <code>V7255877</code>
 
-<b>Option 2 — send a photo or document</b>
-(permit card, passport page, or any clear image showing both numbers)
+<b>Photo</b> — permit card or passport showing both numbers
 
-Line 1 = Work permit · Line 2 = Passport (for text)
+You get full permit details, employee photo, and card image.
 
 Commands: /start /help`;
 

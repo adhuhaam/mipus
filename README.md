@@ -4,26 +4,24 @@ Look up Maldives work permits (same data as **Xpat MV**): employee details, phot
 
 ## How it works
 
-1. **Input** — either:
-   - Type **work permit** + **passport** (both required), or
-   - Upload / photograph a document that shows **both numbers**
-2. **OCR** (images only) — server reads the image with **Tesseract.js** (open source)
-3. **Lookup** — app calls `mobile-xpat.egov.mv` with both numbers
-4. **Output** — full profile on the website, or Telegram messages + photo + card
+1. **Input** — type **work permit + passport**, or upload / photograph a document with both numbers
+2. **OCR** (images) — **browser** Tesseract v7 on the web app; **server** Tesseract for Telegram photos
+3. **Lookup** — official `mobile-xpat.egov.mv` API (both numbers required)
+4. **Output** — profile on the website, or structured Telegram message + photo + card
 
 ## Features
 
-- Manual two-field lookup
-- Camera / gallery scan → auto-fill → lookup
-- Telegram bot: two lines of text **or** a photo
-- API key stays server-side (`XPAT_API_KEY` on Vercel)
+- Manual lookup form
+- Camera / gallery scan (OCR in browser — no server upload on web)
+- Telegram bot: two lines of text or a photo
+- Rich Telegram reply (personal, permit, employment, validity, eGov link)
 
 ## Local development
 
 ```bash
 npm install
 cp .env.example .env.local
-# Set XPAT_API_KEY (and optional TELEGRAM_* for the bot)
+# XPAT_API_KEY required; TELEGRAM_* optional for bot
 npm run dev
 ```
 
@@ -31,38 +29,62 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploy to Vercel
 
-1. Import repo in [Vercel](https://vercel.com) (Next.js).
-2. Environment variables:
-
 | Variable | Required | Notes |
 |----------|----------|--------|
 | `XPAT_API_KEY` | Yes | Xpat Mobile API key |
 | `TELEGRAM_BOT_TOKEN` | For bot | From [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_WEBHOOK_SECRET` | Recommended | Random string; same value in `setWebhook` script |
+| `TELEGRAM_WEBHOOK_SECRET` | Recommended | Random string; must match webhook registration |
+| `SETUP_SECRET` | Optional | Protects `POST /api/telegram/setup` |
 
-3. Deploy. OCR uses **Tesseract** (~19 MB function bundle, fits Vercel limits).
+`vercel.json` sets **60s** timeout on the Telegram webhook (photo OCR on server).
 
-`vercel.json` sets **60s** timeout on OCR + Telegram routes (needs a plan that allows >10s).
+### Bot not responding?
 
-### Telegram webhook (after deploy)
+Creating a bot in BotFather is **not enough**. You must **register the webhook** once after deploy.
+
+**Option A — local script** (from repo root):
 
 ```bash
-TELEGRAM_BOT_TOKEN=your-token \
-WEBHOOK_URL=https://workpermit-mv.vercel.app/api/telegram/webhook \
-TELEGRAM_WEBHOOK_SECRET=your-secret \
+TELEGRAM_BOT_TOKEN='your-token' \
+WEBHOOK_URL='https://workpermit-mv.vercel.app/api/telegram/webhook' \
+TELEGRAM_WEBHOOK_SECRET='same-as-vercel' \
 node scripts/telegram-set-webhook.mjs
 ```
 
-Check webhook health:
+Expect `"ok": true`. Do **not** use angle brackets in URLs or tokens.
 
-```text
-GET https://workpermit-mv.vercel.app/api/telegram/webhook
-→ {"ok":true,"bot":true,"secret":true}
+**Option B — Vercel setup route** (set `SETUP_SECRET` on Vercel, redeploy):
+
+```bash
+curl -X POST 'https://workpermit-mv.vercel.app/api/telegram/setup' \
+  -H 'x-setup-secret: YOUR_SETUP_SECRET' \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://workpermit-mv.vercel.app/api/telegram/webhook"}'
 ```
 
-If the bot never replies, check Vercel logs for `401` (secret mismatch) or `TELEGRAM_BOT_TOKEN` missing.
+**Checks:**
 
-**First image scan** after deploy may take 15–30s while English OCR data downloads to `/tmp`; later scans are faster.
+1. `GET https://workpermit-mv.vercel.app/api/telegram/webhook` → `{"ok":true,"bot":true,"secret":true}`
+2. `curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"` → `url` matches your app; no `last_error_message`
+3. Message bot with two lines (no OCR): `WP00595305` then `V7255877`
+
+| Symptom | Fix |
+|---------|-----|
+| Bot silent | Run webhook registration; check token on Vercel |
+| Vercel log `401` | `TELEGRAM_WEBHOOK_SECRET` ≠ Telegram `secret_token` — re-run setWebhook |
+| `getWebhookInfo` 404 | Token wrong; remove `<` `>` from curl URL |
+| Photo scan slow/fails | First scan downloads OCR data (~15–30s); check Vercel logs |
+
+**Security:** Never commit bot tokens. Revoke in BotFather if leaked.
+
+### Test bot
+
+```
+WP00595305
+V7255877
+```
+
+Then try a clear permit/passport photo.
 
 ## API routes
 
@@ -71,8 +93,9 @@ If the bot never replies, check Vercel logs for `401` (secret mismatch) or `TELE
 | `GET /api/work-permit` | Permit JSON |
 | `GET /api/work-permit/photo` | Employee photo |
 | `GET /api/work-permit/card` | Permit card PNG |
-| `POST /api/ocr` | Extract WP + passport from image |
 | `POST /api/telegram/webhook` | Bot updates |
+| `POST /api/telegram/setup` | Register webhook (needs `SETUP_SECRET`) |
+| `POST /api/ocr` | Optional server OCR (Telegram uses server OCR internally) |
 
 ## Disclaimer
 
