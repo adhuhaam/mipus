@@ -7,7 +7,7 @@ Look up Maldives work permits (same data as **Xpat MV**): employee details, phot
 1. **Input** — type **work permit + passport**, or upload / photograph a document with both numbers
 2. **OCR** (images) — **browser** Tesseract v7 on the web app; **server** Tesseract for Telegram photos
 3. **Lookup** — official `mobile-xpat.egov.mv` API (both numbers required)
-4. **Output** — profile on the website, or structured Telegram message + photo + card
+4. **Output** — profile on the website, or structured Telegram message + permit card (bot)
 
 ## Features
 

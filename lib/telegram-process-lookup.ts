@@ -27,10 +27,5 @@ export async function processPermitLookup(
     formatTelegramStatusMessage(result.record),
   );
 
-  await telegramSendPermitMedia(
-    chatId,
-    result.record,
-    workPermitNumber,
-    passportNumber,
-  );
+  await telegramSendPermitMedia(chatId, workPermitNumber, passportNumber);
 }
