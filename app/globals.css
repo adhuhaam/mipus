@@ -1,9 +1,9 @@
 :root {
-  --bg: #0f1419;
-  --surface: #1a222d;
-  --surface-2: #243041;
-  --accent: #18a597;
-  --accent-dim: #128f84;
+  --bg: #2b2b2b;
+  --surface: #363636;
+  --surface-2: #424242;
+  --accent: #3b82f6;
+  --accent-dim: #2563eb;
   --text: #f0f4f8;
   --muted: #94a3b8;
   --danger: #f87171;
@@ -35,9 +35,7 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(24, 165, 151, 0.15), transparent),
-    var(--bg);
+  background: var(--bg);
 }
 
 a {

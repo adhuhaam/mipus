@@ -6,4 +6,8 @@ out
 .vercel
 *.log
 .DS_Store
+# APK / reverse-engineering artifacts
+*.apk
+*.xapk
 xapk_extracted/
+**/xapk_extracted/

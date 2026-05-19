@@ -4,8 +4,8 @@
   "description": "Maldives work permit lookup — details, photo and card",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1419",
-  "theme_color": "#18a597",
+  "background_color": "#2b2b2b",
+  "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
   "icons": [
     {
