@@ -1,19 +1,14 @@
 import type { NextConfig } from "next";
 
-/** Tesseract .wasm files are not picked up by default file tracing on Vercel. */
+/** Tesseract .wasm — required for Telegram server OCR on Vercel. */
 const tesseractTraceIncludes = [
   "./node_modules/tesseract.js-core/*.wasm",
   "./node_modules/tesseract.js-core/*.js",
   "./node_modules/tesseract.js/src/worker-script/**/*.js",
   "./node_modules/tesseract.js/src/worker/**/*.js",
+  "./node_modules/tesseract.js/dist/**/*.js",
   "./node_modules/wasm-feature-detect/**/*.cjs",
 ];
-
-const ocrRoutes = ["/api/ocr", "/api/telegram/webhook"] as const;
-
-const outputFileTracingIncludes = Object.fromEntries(
-  ocrRoutes.map((route) => [route, tesseractTraceIncludes]),
-);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -27,7 +22,9 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ["tesseract.js", "tesseract.js-core", "sharp"],
-  outputFileTracingIncludes,
+  outputFileTracingIncludes: {
+    "/api/telegram/webhook": tesseractTraceIncludes,
+  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

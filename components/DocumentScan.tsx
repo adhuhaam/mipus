@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { scanDocumentForPermitFields } from "@/lib/ocr-scan-client";
+import { scanDocumentForPermitFields } from "@/lib/ocr-scan-browser";
 
 type DocumentScanProps = {
   disabled?: boolean;
