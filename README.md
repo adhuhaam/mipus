@@ -31,10 +31,17 @@ Open [http://localhost:3000](http://localhost:3000).
 3. Add environment variables:
    - `XPAT_API_KEY` = your Xpat Mobile API key
    - `TELEGRAM_BOT_TOKEN` = from [@BotFather](https://t.me/BotFather) (for the bot)
-   - `TELEGRAM_WEBHOOK_SECRET` = optional random string (recommended)
+   - `TELEGRAM_WEBHOOK_SECRET` = a random string **you invent** (e.g. `openssl rand -hex 32`). Same value must be used when running `telegram-set-webhook.mjs`. Telegram sends it on each update as `X-Telegram-Bot-Api-Secret-Token`; your app rejects webhooks without a match.
 4. Deploy (framework preset: **Next.js**).
 
-No extra `vercel.json` is required.
+`vercel.json` sets **60s** timeout and **1024 MB** memory on OCR + Telegram routes (PaddleOCR needs both).
+
+**After merge:** Redeploy, then confirm routes exist (405 on GET is OK):
+
+```text
+https://YOUR-APP.vercel.app/api/telegram/webhook
+https://YOUR-APP.vercel.app/api/ocr
+```
 
 ## Telegram bot
 
@@ -71,6 +78,8 @@ Commands: `/start` and `/help` show the format.
 | `GET /api/work-permit` | `WorkPermit` JSON |
 | `GET /api/work-permit/photo` | `WorkPermit/GetImage` |
 | `GET /api/work-permit/card` | `WorkPermitCard/GetWorkPermitCard` |
+| `POST /api/ocr` | Document scan (PaddleOCR) |
+| `POST /api/telegram/webhook` | Telegram bot updates |
 
 ## Disclaimer
 
