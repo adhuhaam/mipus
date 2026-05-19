@@ -20,6 +20,15 @@ const ocrStackExcludes = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: "/favicon.ico",
+        destination: "/icon.svg",
+        permanent: false,
+      },
+    ];
+  },
   serverExternalPackages: [
     "@gutenye/ocr-node",
     "@gutenye/ocr-models",
