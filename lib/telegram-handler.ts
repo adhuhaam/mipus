@@ -1,5 +1,5 @@
 import { formatTelegramErrorMessage } from "@/lib/format-telegram-message";
-import { scanBufferForPermitFields } from "@/lib/ocr-scan";
+import { scanBufferForPermitFieldsServer } from "@/lib/ocr-scan-server";
 import {
   formatOcrFailureMessage,
   getBotHelpText,
@@ -56,7 +56,7 @@ async function handleImageUpload(
 ): Promise<void> {
   await telegramSendMessage(
     chatId,
-    "📷 <b>Scanning your document…</b>\nThis may take 15–30 seconds.",
+    "📷 <b>Scanning your document…</b>\nUsually 5–15 seconds.",
   );
 
   let buffer: Buffer;
@@ -72,7 +72,7 @@ async function handleImageUpload(
 
   let fields;
   try {
-    fields = await scanBufferForPermitFields(buffer);
+    fields = await scanBufferForPermitFieldsServer(buffer);
   } catch {
     await telegramSendMessage(
       chatId,

@@ -46,7 +46,7 @@ WP00595305
 V7255877
 ```
 
-**Photo or image document** — permit card, passport page, etc. The bot runs OCR, finds both numbers, then looks up the record.
+**Photo or image document** — permit card, passport page, etc. The bot runs **PaddleOCR** (open source, via `@gutenye/ocr-node`), finds both numbers, then looks up the record. First scan after deploy may be slower while models load; later scans are much faster (~5–15s).
 
 The bot replies with status text, employee photo, and permit card image.
 
