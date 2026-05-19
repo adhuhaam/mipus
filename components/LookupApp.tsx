@@ -2,8 +2,8 @@
 
 import { FormEvent, useCallback, useState } from "react";
 import { DocumentScan } from "@/components/DocumentScan";
+import { EmployeeProfile } from "@/components/EmployeeProfile";
 import type { WorkPermitRecord } from "@/types/work-permit";
-import { displayValue, formatDate } from "@/lib/format";
 
 interface LookupPayload {
   record: WorkPermitRecord;
@@ -12,70 +12,6 @@ interface LookupPayload {
     photo: string | null;
     card: string;
   };
-}
-
-const DETAIL_SECTIONS: {
-  title: string;
-  fields: { key: keyof WorkPermitRecord; label: string }[];
-}[] = [
-  {
-    title: "Work permit",
-    fields: [
-      { key: "workPermitNumber", label: "Permit number" },
-      { key: "workPermitStateName", label: "State" },
-      { key: "isValid", label: "Validity" },
-      { key: "occupationName", label: "Occupation" },
-      { key: "workPermitIssuedDate", label: "Issued" },
-      { key: "workPermitExpiry", label: "Expiry" },
-    ],
-  },
-  {
-    title: "Employee",
-    fields: [
-      { key: "fullName", label: "Full name" },
-      { key: "firstName", label: "First name" },
-      { key: "middleName", label: "Middle name" },
-      { key: "lastName", label: "Last name" },
-      { key: "gender", label: "Gender" },
-      { key: "dateOfBirth", label: "Date of birth" },
-      { key: "passportNumber", label: "Passport" },
-      { key: "nationality", label: "Nationality" },
-      { key: "isoAlpha3CountryCode", label: "Country code" },
-      { key: "contactNumber", label: "Contact" },
-    ],
-  },
-  {
-    title: "Employer",
-    fields: [
-      { key: "employerName", label: "Employer name" },
-      { key: "employerNumber", label: "Employer number" },
-      { key: "employerContactNumber", label: "Employer contact" },
-    ],
-  },
-];
-
-function formatFieldValue(
-  key: keyof WorkPermitRecord,
-  value: string | null,
-): string {
-  if (
-    key === "dateOfBirth" ||
-    key === "workPermitIssuedDate" ||
-    key === "workPermitExpiry"
-  ) {
-    return formatDate(value);
-  }
-  return displayValue(value);
-}
-
-function isRecordValid(isValid: string | null | undefined): boolean {
-  if (!isValid) return false;
-  const lower = isValid.toLowerCase();
-  return (
-    lower.includes("valid") &&
-    !lower.includes("in-valid") &&
-    !lower.includes("invalid")
-  );
 }
 
 export function LookupApp() {
@@ -213,83 +149,11 @@ export function LookupApp() {
 
       {result && (
         <div id="lookup-results" className="results">
-          <section className="card">
-            <div className="profile-row">
-              {result.assets.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  className="profile-photo"
-                  src={result.assets.photo}
-                  alt={`Photo of ${result.record.fullName ?? "employee"}`}
-                  width={112}
-                  height={140}
-                />
-              ) : (
-                <div
-                  className="profile-photo skeleton"
-                  style={{ width: 112, height: 140 }}
-                />
-              )}
-              <div className="profile-head">
-                <h2>{displayValue(result.record.fullName)}</h2>
-                <p className="meta">
-                  {displayValue(result.record.occupationName)}
-                </p>
-                <p className="meta">
-                  {displayValue(result.record.nationality)} ·{" "}
-                  {displayValue(result.record.passportNumber)}
-                </p>
-                <span
-                  className={`status-badge ${
-                    isRecordValid(result.record.isValid)
-                      ? "status-valid"
-                      : "status-invalid"
-                  }`}
-                >
-                  {displayValue(result.record.isValid)} ·{" "}
-                  {displayValue(result.record.workPermitStateName)}
-                </span>
-                {result.record.verifyUrl && (
-                  <div className="link-row">
-                    <a
-                      className="link-btn"
-                      href={result.record.verifyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open verification (QR)
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {DETAIL_SECTIONS.map((section) => (
-            <section key={section.title} className="card">
-              <h3 className="section-title">{section.title}</h3>
-              <dl className="field-grid">
-                {section.fields.map(({ key, label }) => (
-                  <div key={key} className="field-item">
-                    <dt>{label}</dt>
-                    <dd>{formatFieldValue(key, result.record[key])}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ))}
-
-          <section className="card">
-            <h3 className="section-title">Work permit card</h3>
-            <div className="card-image-wrap">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="card-image"
-                src={result.assets.card}
-                alt="Work permit card"
-              />
-            </div>
-          </section>
+          <EmployeeProfile
+            record={result.record}
+            photoUrl={result.assets.photo}
+            cardImageUrl={result.assets.card}
+          />
         </div>
       )}
     </div>
