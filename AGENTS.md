@@ -27,4 +27,5 @@ Next.js PWA + Telegram bot for Maldives Xpat work permit lookup.
 - Both permit + passport required upstream (400 if one missing).
 - Bot 401 = `TELEGRAM_WEBHOOK_SECRET` mismatch with Telegram `secret_token`.
 - OCR routes: `maxDuration = 60` in route + `vercel.json`.
+- Tesseract: `outputFileTracingIncludes` must bundle `tesseract.js-core/*.wasm` (ENOENT on Vercel otherwise).
 - PWA service worker v2: network-first HTML; do not cache `/_next` chunks.
