@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
+import { DocumentScan } from "@/components/DocumentScan";
 import type { WorkPermitRecord } from "@/types/work-permit";
 import { displayValue, formatDate } from "@/lib/format";
 
@@ -84,15 +85,24 @@ export function LookupApp() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LookupPayload | null>(null);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  const performLookup = useCallback(async (wp: string, pass: string) => {
+    const wpTrim = wp.trim();
+    const passTrim = pass.trim();
+
+    if (!wpTrim || !passTrim) {
+      setError("Work permit number and passport number are both required.");
+      return;
+    }
+
+    setWorkPermitNumber(wpTrim);
+    setPassportNumber(passTrim);
     setLoading(true);
     setError(null);
     setResult(null);
 
     const params = new URLSearchParams({
-      workPermitNumber: workPermitNumber.trim(),
-      passportNumber: passportNumber.trim(),
+      workPermitNumber: wpTrim,
+      passportNumber: passTrim,
     });
 
     try {
@@ -109,21 +119,55 @@ export function LookupApp() {
       }
 
       setResult(data as LookupPayload);
+      requestAnimationFrame(() => {
+        document.getElementById("lookup-results")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    void performLookup(workPermitNumber, passportNumber);
+  }
+
+  function handleOcrExtracted(fields: {
+    workPermitNumber: string;
+    passportNumber: string;
+  }) {
+    setError(null);
+    void performLookup(fields.workPermitNumber, fields.passportNumber);
   }
 
   return (
     <div className="app-shell">
       <header className="header">
         <h1>Xpat Lookup</h1>
-        <p>Work permit details, photo &amp; card — Maldives eGov</p>
+        <p>Work permit · photo · card</p>
       </header>
 
-      <section className="card">
+      <section className="card search-card">
+        <DocumentScan
+          disabled={loading}
+          onExtracted={handleOcrExtracted}
+          onPartial={(fields) => {
+            if (fields.workPermitNumber)
+              setWorkPermitNumber(fields.workPermitNumber);
+            if (fields.passportNumber) setPassportNumber(fields.passportNumber);
+          }}
+          onError={setError}
+        />
+
+        <div className="search-divider">
+          <span>or enter manually</span>
+        </div>
+
         <form className="lookup-form" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="wp">Work permit number</label>
@@ -131,11 +175,13 @@ export function LookupApp() {
               id="wp"
               name="workPermitNumber"
               value={workPermitNumber}
-              onChange={(e) => setWorkPermitNumber(e.target.value)}
-              placeholder="e.g. WP00595305"
+              onChange={(e) => setWorkPermitNumber(e.target.value.toUpperCase())}
+              placeholder="WP00595305"
               required
               autoComplete="off"
               autoCapitalize="characters"
+              enterKeyHint="next"
+              inputMode="text"
             />
           </div>
           <div className="field">
@@ -144,11 +190,13 @@ export function LookupApp() {
               id="passport"
               name="passportNumber"
               value={passportNumber}
-              onChange={(e) => setPassportNumber(e.target.value)}
-              placeholder="e.g. V7255877"
+              onChange={(e) => setPassportNumber(e.target.value.toUpperCase())}
+              placeholder="V7255877"
               required
               autoComplete="off"
               autoCapitalize="characters"
+              enterKeyHint="search"
+              inputMode="text"
             />
           </div>
           <button type="submit" className="btn-primary" disabled={loading}>
@@ -164,7 +212,7 @@ export function LookupApp() {
       </section>
 
       {result && (
-        <div className="results">
+        <div id="lookup-results" className="results">
           <section className="card">
             <div className="profile-row">
               {result.assets.photo ? (
@@ -242,46 +290,8 @@ export function LookupApp() {
               />
             </div>
           </section>
-
-          <section className="card">
-            <h3 className="section-title">Raw API fields</h3>
-            <dl className="field-grid">
-              {(
-                Object.entries(result.record) as [
-                  keyof WorkPermitRecord,
-                  string | null,
-                ][]
-              ).map(([key, value]) => (
-                <div key={key} className="field-item">
-                  <dt>{key}</dt>
-                  <dd>
-                    {key === "photoUrl" || key === "verifyUrl" ? (
-                      value ? (
-                        <a
-                          href={value}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {value}
-                        </a>
-                      ) : (
-                        "—"
-                      )
-                    ) : (
-                      formatFieldValue(key, value)
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
         </div>
       )}
-
-      <p className="footer-note">
-        Unofficial lookup tool. Data is fetched from the Maldives Xpat mobile
-        API. Both work permit number and passport number are required.
-      </p>
     </div>
   );
 }
