@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { ApiErrorResponse, WorkPermitRecord } from "@/types/work-permit";
-import {
-  buildWorkPermitUrl,
-  parsePhotoIds,
-  upstreamErrorMessage,
-  xpatHeaders,
-} from "@/lib/xpat-api";
+import type { ApiErrorResponse } from "@/types/work-permit";
+import { parsePhotoIds } from "@/lib/xpat-api";
+import { lookupWorkPermit } from "@/lib/xpat-lookup";
 
 export const dynamic = "force-dynamic";
 
@@ -29,23 +25,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const res = await fetch(
-      buildWorkPermitUrl(workPermitNumber, passportNumber),
-      {
-        headers: xpatHeaders(),
-        cache: "no-store",
-      },
-    );
+    const result = await lookupWorkPermit(workPermitNumber, passportNumber);
 
-    if (!res.ok) {
-      const message = await upstreamErrorMessage(res);
+    if (!result.ok) {
       return NextResponse.json(
-        { errors: [message] } satisfies ApiErrorResponse,
-        { status: res.status },
+        { errors: [result.error] } satisfies ApiErrorResponse,
+        { status: result.status },
       );
     }
 
-    const record = (await res.json()) as WorkPermitRecord;
+    const record = result.record;
     const photoIds = parsePhotoIds(record.photoUrl);
 
     return NextResponse.json({

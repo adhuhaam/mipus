@@ -14,11 +14,14 @@ Next.js PWA for Maldives Xpat work permit lookup (`xpat-lookup-pwa`).
 ### Environment
 
 - `XPAT_API_KEY` — required for API proxy routes (`lib/xpat-api.ts`). Set in Vercel project settings for production.
+- `TELEGRAM_BOT_TOKEN` — required for `/api/telegram/webhook`.
+- `TELEGRAM_WEBHOOK_SECRET` — optional; set same value when calling `scripts/telegram-set-webhook.mjs`.
 
 ### Architecture
 
 - UI: `app/page.tsx` → `components/LookupApp.tsx` (client)
 - Proxies: `app/api/work-permit/*` → `mobile-xpat.egov.mv/api/v1`
+- Telegram: `app/api/telegram/webhook` → `lib/telegram-handler.ts`
 - PWA: `public/manifest.webmanifest`, `public/sw.js`, registered in `components/PwaRegister.tsx`
 
 ### Gotchas

@@ -27,11 +27,37 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Push this repo to GitHub.
 2. Import the project in [Vercel](https://vercel.com).
-3. Add environment variable:
+3. Add environment variables:
    - `XPAT_API_KEY` = your Xpat Mobile API key
+   - `TELEGRAM_BOT_TOKEN` = from [@BotFather](https://t.me/BotFather) (for the bot)
+   - `TELEGRAM_WEBHOOK_SECRET` = optional random string (recommended)
 4. Deploy (framework preset: **Next.js**).
 
 No extra `vercel.json` is required.
+
+## Telegram bot
+
+Users send **two lines** (work permit, then passport):
+
+```
+WP00595305
+V7255877
+```
+
+The bot replies with status text, employee photo, and permit card image.
+
+**After deploy**, register the webhook (replace URL):
+
+```bash
+TELEGRAM_BOT_TOKEN=your-token \
+WEBHOOK_URL=https://YOUR-APP.vercel.app/api/telegram/webhook \
+TELEGRAM_WEBHOOK_SECRET=your-secret \
+node scripts/telegram-set-webhook.mjs
+```
+
+Commands: `/start` and `/help` show the format.
+
+**Security:** Never commit `TELEGRAM_BOT_TOKEN`. If a token was shared publicly, revoke it in BotFather and create a new one.
 
 ## API routes (proxy)
 
