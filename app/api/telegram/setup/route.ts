@@ -73,5 +73,27 @@ export async function POST(request: NextRequest) {
   });
 
   const data = await res.json();
-  return NextResponse.json({ webhookUrl, telegram: data }, { status: data.ok ? 200 : 502 });
+
+  let commands = { ok: false };
+  if (data.ok) {
+    const cmdRes = await fetch(
+      `https://api.telegram.org/bot${token}/setMyCommands`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commands: [
+            { command: "help", description: "Show instructions" },
+            { command: "start", description: "Show instructions" },
+          ],
+        }),
+      },
+    );
+    commands = await cmdRes.json();
+  }
+
+  return NextResponse.json(
+    { webhookUrl, setWebhook: data, setMyCommands: commands },
+    { status: data.ok ? 200 : 502 },
+  );
 }

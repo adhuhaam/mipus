@@ -2,17 +2,14 @@ export type ParsedPermitInput =
   | { ok: true; workPermitNumber: string; passportNumber: string }
   | { ok: false; error: string };
 
-const HELP_TEXT = `<b>Xpat Lookup bot</b>
+const HELP_TEXT = `<b>Instructions</b>
 
-<b>Text</b> — two lines (permit, then passport):
-<code>WP00595305</code>
-<code>V7255877</code>
+Send your Work Permit Number and Passport Number in the format below, or send a photo of any document containing both numbers. I will provide your visa information, current status, work permit details, and other available information.
 
-<b>Photo</b> — permit card or passport showing both numbers
+নিচের ফরম্যাটে আপনার ওয়ার্ক পারমিট নম্বর এবং পাসপোর্ট নম্বর পাঠান, অথবা এমন কোনো ডকুমেন্টের ছবি পাঠান যেখানে এই দুটি নম্বর রয়েছে। আমি আপনাকে ভিসার তথ্য, বর্তমান স্ট্যাটাস, ওয়ার্ক পারমিটের তথ্য এবং অন্যান্য উপলব্ধ তথ্য পাঠিয়ে দেব।
 
-You get full permit details, employee photo, and card image.
-
-Commands: /start /help`;
+<code>WP00000000</code>
+<code>A0000000</code>`;
 
 export function getBotHelpText(): string {
   return HELP_TEXT;
@@ -35,7 +32,7 @@ export function parsePermitMessage(text: string): ParsedPermitInput {
     return {
       ok: false,
       error:
-        "Send two lines (permit then passport), or send a <b>photo/document</b> of your permit or passport.\n\nExample:\n<code>WP00595305</code>\n<code>V7255877</code>",
+        "Send two lines (permit then passport), or send a <b>photo</b> of a document with both numbers.\n\nExample:\n<code>WP00000000</code>\n<code>A0000000</code>",
     };
   }
 

@@ -33,5 +33,26 @@ const res = await fetch(
 );
 
 const data = await res.json();
-console.log(JSON.stringify(data, null, 2));
-process.exit(data.ok ? 0 : 1);
+console.log("setWebhook:", JSON.stringify(data, null, 2));
+
+if (!data.ok) {
+  process.exit(1);
+}
+
+const cmdRes = await fetch(
+  `https://api.telegram.org/bot${token}/setMyCommands`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      commands: [
+        { command: "help", description: "Show instructions" },
+        { command: "start", description: "Show instructions" },
+      ],
+    }),
+  },
+);
+
+const cmdData = await cmdRes.json();
+console.log("setMyCommands:", JSON.stringify(cmdData, null, 2));
+process.exit(cmdData.ok ? 0 : 1);
