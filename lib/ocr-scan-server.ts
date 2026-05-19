@@ -1,63 +1,56 @@
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
+import { createWorker, OEM, PSM } from "tesseract.js";
 import { extractPermitFields, type ExtractedPermitFields } from "./ocr-extract";
 import { preprocessOcrImage } from "./ocr-preprocess";
 
-type OcrLine = { text: string };
+/** Fast English models (downloaded once into /tmp on Vercel). */
+const TESSDATA_BASE = "https://tessdata.projectnaptha.com/4.0.0_fast";
 
-type GutenOcr = {
-  detect: (imagePath: string) => Promise<OcrLine[]>;
-};
+type OcrWorker = Awaited<ReturnType<typeof createWorker>>;
 
-let ocrReady: Promise<GutenOcr> | null = null;
+let workerReady: Promise<OcrWorker> | null = null;
 
-function loadGutenOcr(): Promise<GutenOcr> {
-  if (!ocrReady) {
-    ocrReady = (async () => {
-      const mod = await import("@gutenye/ocr-node");
-      const Ocr = mod.default;
-      return Ocr.create() as Promise<GutenOcr>;
-    })();
-  }
-  return ocrReady;
+function createOcrWorker(): Promise<OcrWorker> {
+  return (async () => {
+    const worker = await createWorker("eng", OEM.LSTM_ONLY, {
+      cachePath: "/tmp",
+      langPath: TESSDATA_BASE,
+      gzip: true,
+      logger: () => {},
+    });
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+    });
+    return worker;
+  })();
 }
 
-function linesToText(lines: OcrLine[]): string {
-  const joined = lines.map((l) => l.text.trim()).filter(Boolean);
-  return `${joined.join("\n")}\n${joined.join(" ")}`;
+function getOcrWorker(): Promise<OcrWorker> {
+  if (!workerReady) {
+    workerReady = createOcrWorker().catch((err) => {
+      workerReady = null;
+      throw err;
+    });
+  }
+  return workerReady;
 }
 
 /**
- * Server OCR: PaddleOCR (PP-OCRv4) via @gutenye/ocr-node — MIT, faster than
- * cold-starting Tesseract on each request when the engine stays warm.
+ * Server OCR via Tesseract.js (Apache-2.0) — fits Vercel serverless unlike Paddle/ONNX.
  */
 export async function scanBufferForPermitFieldsServer(
   image: Buffer,
 ): Promise<ExtractedPermitFields> {
-  const [processed, ocr] = await Promise.all([
-    preprocessOcrImage(image),
-    loadGutenOcr(),
-  ]);
-
-  const tmpPath = path.join(
-    os.tmpdir(),
-    `xpat-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`,
-  );
-
-  await fs.writeFile(tmpPath, processed);
-
-  try {
-    const lines = await ocr.detect(tmpPath);
-    return extractPermitFields(linesToText(lines));
-  } finally {
-    await fs.unlink(tmpPath).catch(() => undefined);
-  }
+  const processed = await preprocessOcrImage(image);
+  const worker = await getOcrWorker();
+  const {
+    data: { text },
+  } = await worker.recognize(processed);
+  return extractPermitFields(text);
 }
 
-/** Pre-load models on first deploy request (optional warm-up). */
+/** Optional: start language download before first user scan. */
 export function warmOcrEngine(): void {
-  void loadGutenOcr().catch((err) => {
-    console.error("OCR warm-up failed", err);
+  void getOcrWorker().catch((err) => {
+    console.error("Tesseract warm-up failed", err);
   });
 }

@@ -4,8 +4,8 @@ import {
   warmOcrEngine,
 } from "@/lib/ocr-scan-server";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-/** PaddleOCR model load + recognition */
 export const maxDuration = 60;
 
 warmOcrEngine();
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const mime = file.type || "application/octet-stream";
   if (!mime.startsWith("image/")) {
     return NextResponse.json(
-      { error: "File must be an image" },
+      { error: "Please upload an image (JPG or PNG)" },
       { status: 400 },
     );
   }
@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(fields);
   } catch (err) {
     console.error("OCR route error", err);
-    return NextResponse.json({ error: "OCR failed" }, { status: 500 });
+    const detail =
+      err instanceof Error ? err.message : "OCR engine error";
+    return NextResponse.json(
+      {
+        error:
+          "Could not read the document. Try a clearer photo or enter numbers manually.",
+        detail: process.env.NODE_ENV === "development" ? detail : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

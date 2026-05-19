@@ -2,11 +2,11 @@
   "functions": {
     "app/api/ocr/route.ts": {
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 512
     },
     "app/api/telegram/webhook/route.ts": {
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 512
     }
   }
 }

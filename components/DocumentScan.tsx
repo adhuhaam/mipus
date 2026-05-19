@@ -67,8 +67,13 @@ export function DocumentScan({
         );
         setScanStatus(null);
       }
-    } catch {
-      onError("Scan failed. Try again or enter numbers manually.");
+    } catch (err) {
+      const fallback = "Scan failed. Try again or enter numbers manually.";
+      if (err instanceof Error && err.message && err.message !== fallback) {
+        onError(err.message);
+      } else {
+        onError(fallback);
+      }
       setScanStatus(null);
     } finally {
       setScanning(false);

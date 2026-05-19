@@ -73,11 +73,12 @@ async function handleImageUpload(
   let fields;
   try {
     fields = await scanBufferForPermitFieldsServer(buffer);
-  } catch {
+  } catch (err) {
+    console.error("Telegram OCR failed", err);
     await telegramSendMessage(
       chatId,
       formatTelegramErrorMessage(
-        "Document scan failed. Try a clearer photo or send two lines of text.",
+        "Document scan failed on the server. Try a clearer photo or send two lines of text:\n<code>WP00595305</code>\n<code>V7255877</code>",
       ),
     );
     return;

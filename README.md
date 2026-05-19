@@ -1,24 +1,29 @@
 # Xpat Lookup PWA
 
-A minimal Progressive Web App to look up Maldives work permits — same data as the official **Xpat MV** mobile app: employee details, photo, and permit card image.
+Look up Maldives work permits (same data as **Xpat MV**): employee details, photo, and permit card — on the **web** or via **Telegram**.
+
+## How it works
+
+1. **Input** — either:
+   - Type **work permit** + **passport** (both required), or
+   - Upload / photograph a document that shows **both numbers**
+2. **OCR** (images only) — server reads the image with **Tesseract.js** (open source)
+3. **Lookup** — app calls `mobile-xpat.egov.mv` with both numbers
+4. **Output** — full profile on the website, or Telegram messages + photo + card
 
 ## Features
 
-- Lookup by **work permit number** + **passport number** (both required by the API)
-- Shows all fields returned by `/api/v1/WorkPermit`
-- Employee photo via proxied `/WorkPermit/GetImage`
-- Full permit card PNG via `/WorkPermitCard/GetWorkPermitCard`
-- Link to official QR verification URL (`verifyUrl`)
-- Installable PWA (manifest + service worker)
-- **Document scan** (camera/upload) via server **PaddleOCR** (PP-OCRv4, MIT) — same engine as the Telegram bot
-- API key kept **server-side** via Next.js route handlers (safe for Vercel)
+- Manual two-field lookup
+- Camera / gallery scan → auto-fill → lookup
+- Telegram bot: two lines of text **or** a photo
+- API key stays server-side (`XPAT_API_KEY` on Vercel)
 
 ## Local development
 
 ```bash
 npm install
 cp .env.example .env.local
-# Edit .env.local and set XPAT_API_KEY (from the mobile app / your API provider)
+# Set XPAT_API_KEY (and optional TELEGRAM_* for the bot)
 npm run dev
 ```
 
@@ -26,61 +31,49 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploy to Vercel
 
-1. Push this repo to GitHub.
-2. Import the project in [Vercel](https://vercel.com).
-3. Add environment variables:
-   - `XPAT_API_KEY` = your Xpat Mobile API key
-   - `TELEGRAM_BOT_TOKEN` = from [@BotFather](https://t.me/BotFather) (for the bot)
-   - `TELEGRAM_WEBHOOK_SECRET` = a random string **you invent** (e.g. `openssl rand -hex 32`). Same value must be used when running `telegram-set-webhook.mjs`. Telegram sends it on each update as `X-Telegram-Bot-Api-Secret-Token`; your app rejects webhooks without a match.
-4. Deploy (framework preset: **Next.js**).
+1. Import repo in [Vercel](https://vercel.com) (Next.js).
+2. Environment variables:
 
-`vercel.json` sets **60s** timeout and **1024 MB** memory on OCR + Telegram routes (PaddleOCR needs both).
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `XPAT_API_KEY` | Yes | Xpat Mobile API key |
+| `TELEGRAM_BOT_TOKEN` | For bot | From [@BotFather](https://t.me/BotFather) |
+| `TELEGRAM_WEBHOOK_SECRET` | Recommended | Random string; same value in `setWebhook` script |
 
-**After merge:** Redeploy, then confirm routes exist (405 on GET is OK):
+3. Deploy. OCR uses **Tesseract** (~19 MB function bundle, fits Vercel limits).
 
-```text
-https://YOUR-APP.vercel.app/api/telegram/webhook
-https://YOUR-APP.vercel.app/api/ocr
-```
+`vercel.json` sets **60s** timeout on OCR + Telegram routes (needs a plan that allows >10s).
 
-## Telegram bot
-
-Users can either:
-
-**Text** — two lines (work permit, then passport):
-
-```
-WP00595305
-V7255877
-```
-
-**Photo or image document** — permit card, passport page, etc. The bot and PWA use **PaddleOCR** (open source, via `@gutenye/ocr-node`), find both numbers, then look up the record. First scan after deploy may be slower while models load; later scans are much faster (~5–15s).
-
-The bot replies with status text, employee photo, and permit card image.
-
-**After deploy**, register the webhook (replace URL):
+### Telegram webhook (after deploy)
 
 ```bash
 TELEGRAM_BOT_TOKEN=your-token \
-WEBHOOK_URL=https://YOUR-APP.vercel.app/api/telegram/webhook \
+WEBHOOK_URL=https://workpermit-mv.vercel.app/api/telegram/webhook \
 TELEGRAM_WEBHOOK_SECRET=your-secret \
 node scripts/telegram-set-webhook.mjs
 ```
 
-Commands: `/start` and `/help` show the format.
+Check webhook health:
 
-**Security:** Never commit `TELEGRAM_BOT_TOKEN`. If a token was shared publicly, revoke it in BotFather and create a new one.
+```text
+GET https://workpermit-mv.vercel.app/api/telegram/webhook
+→ {"ok":true,"bot":true,"secret":true}
+```
 
-## API routes (proxy)
+If the bot never replies, check Vercel logs for `401` (secret mismatch) or `TELEGRAM_BOT_TOKEN` missing.
 
-| Route | Upstream |
-|-------|----------|
-| `GET /api/work-permit` | `WorkPermit` JSON |
-| `GET /api/work-permit/photo` | `WorkPermit/GetImage` |
-| `GET /api/work-permit/card` | `WorkPermitCard/GetWorkPermitCard` |
-| `POST /api/ocr` | Document scan (PaddleOCR) |
-| `POST /api/telegram/webhook` | Telegram bot updates |
+**First image scan** after deploy may take 15–30s while English OCR data downloads to `/tmp`; later scans are faster.
+
+## API routes
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/work-permit` | Permit JSON |
+| `GET /api/work-permit/photo` | Employee photo |
+| `GET /api/work-permit/card` | Permit card PNG |
+| `POST /api/ocr` | Extract WP + passport from image |
+| `POST /api/telegram/webhook` | Bot updates |
 
 ## Disclaimer
 
-Unofficial tool. Use only for permits you are authorized to view. Data is sourced from `mobile-xpat.egov.mv`.
+Unofficial tool. Use only for permits you are authorized to view.
