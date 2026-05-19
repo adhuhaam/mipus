@@ -114,6 +114,34 @@ export async function telegramSendPermitMedia(
   }
 }
 
+type TelegramFileResponse = {
+  ok: boolean;
+  result?: { file_path?: string };
+};
+
+/** Download a file uploaded to Telegram (photo or document). */
+export async function telegramDownloadFile(fileId: string): Promise<Buffer> {
+  const metaRes = await fetch(
+    `${botBase()}/getFile?file_id=${encodeURIComponent(fileId)}`,
+  );
+  const meta = (await metaRes.json()) as TelegramFileResponse;
+
+  if (!meta.ok || !meta.result?.file_path) {
+    throw new Error("Could not get file from Telegram");
+  }
+
+  const token = process.env.TELEGRAM_BOT_TOKEN!;
+  const fileRes = await fetch(
+    `https://api.telegram.org/file/bot${token}/${meta.result.file_path}`,
+  );
+
+  if (!fileRes.ok) {
+    throw new Error("Could not download file from Telegram");
+  }
+
+  return Buffer.from(await fileRes.arrayBuffer());
+}
+
 export function verifyTelegramSecret(request: Request): boolean {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!secret) return true;

@@ -1,26 +1,113 @@
-import { formatTelegramErrorMessage, formatTelegramStatusMessage } from "@/lib/format-telegram-message";
-import { getBotHelpText, parsePermitMessage } from "@/lib/parse-bot-message";
-import { lookupWorkPermit } from "@/lib/xpat-lookup";
+import { formatTelegramErrorMessage } from "@/lib/format-telegram-message";
+import { scanBufferForPermitFields } from "@/lib/ocr-scan";
 import {
+  formatOcrFailureMessage,
+  getBotHelpText,
+  parsePermitMessage,
+} from "@/lib/parse-bot-message";
+import { processPermitLookup } from "@/lib/telegram-process-lookup";
+import {
+  telegramDownloadFile,
   telegramSendMessage,
-  telegramSendPermitMedia,
 } from "@/lib/telegram-api";
 
-type TelegramUpdate = {
-  message?: {
-    message_id: number;
-    chat: { id: number; type: string };
-    text?: string;
-  };
+type TelegramPhotoSize = { file_id: string };
+
+type TelegramDocument = {
+  file_id: string;
+  mime_type?: string;
+  file_name?: string;
 };
 
-export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void> {
-  const message = update.message;
-  if (!message?.text) return;
+type TelegramMessage = {
+  message_id: number;
+  chat: { id: number; type: string };
+  text?: string;
+  caption?: string;
+  photo?: TelegramPhotoSize[];
+  document?: TelegramDocument;
+};
 
-  const chatId = message.chat.id;
-  const text = message.text.trim();
+export type TelegramUpdate = {
+  message?: TelegramMessage;
+};
 
+const IMAGE_MIME_PREFIX = "image/";
+
+function getTelegramImageFileId(message: TelegramMessage): string | null {
+  if (message.document) {
+    const mime = message.document.mime_type ?? "";
+    if (mime.startsWith(IMAGE_MIME_PREFIX)) {
+      return message.document.file_id;
+    }
+    return null;
+  }
+
+  if (message.photo?.length) {
+    return message.photo[message.photo.length - 1].file_id;
+  }
+
+  return null;
+}
+
+async function handleImageUpload(
+  chatId: number,
+  fileId: string,
+): Promise<void> {
+  await telegramSendMessage(
+    chatId,
+    "📷 <b>Scanning your document…</b>\nThis may take 15–30 seconds.",
+  );
+
+  let buffer: Buffer;
+  try {
+    buffer = await telegramDownloadFile(fileId);
+  } catch {
+    await telegramSendMessage(
+      chatId,
+      formatTelegramErrorMessage("Could not download the image from Telegram."),
+    );
+    return;
+  }
+
+  let fields;
+  try {
+    fields = await scanBufferForPermitFields(buffer);
+  } catch {
+    await telegramSendMessage(
+      chatId,
+      formatTelegramErrorMessage(
+        "Document scan failed. Try a clearer photo or send two lines of text.",
+      ),
+    );
+    return;
+  }
+
+  const wp = fields.workPermitNumber?.trim() ?? "";
+  const pass = fields.passportNumber?.trim() ?? "";
+
+  if (wp && pass) {
+    await telegramSendMessage(
+      chatId,
+      `✅ Found <code>${wp}</code> and <code>${pass}</code>`,
+    );
+    await processPermitLookup(chatId, wp, pass);
+    return;
+  }
+
+  await telegramSendMessage(
+    chatId,
+    formatOcrFailureMessage({
+      ...(wp ? { workPermitNumber: wp } : {}),
+      ...(pass ? { passportNumber: pass } : {}),
+    }),
+  );
+}
+
+async function handleTextMessage(
+  chatId: number,
+  text: string,
+): Promise<void> {
   if (text === "/start" || text === "/help") {
     await telegramSendMessage(chatId, getBotHelpText());
     return;
@@ -32,30 +119,38 @@ export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void
     return;
   }
 
-  await telegramSendMessage(chatId, "⏳ Looking up permit…");
-
-  const result = await lookupWorkPermit(
+  await processPermitLookup(
+    chatId,
     parsed.workPermitNumber,
     parsed.passportNumber,
   );
+}
 
-  if (!result.ok) {
+export async function handleTelegramUpdate(
+  update: TelegramUpdate,
+): Promise<void> {
+  const message = update.message;
+  if (!message) return;
+
+  const chatId = message.chat.id;
+
+  const imageFileId = getTelegramImageFileId(message);
+  if (imageFileId) {
+    await handleImageUpload(chatId, imageFileId);
+    return;
+  }
+
+  if (message.document && !message.document.mime_type?.startsWith(IMAGE_MIME_PREFIX)) {
     await telegramSendMessage(
       chatId,
-      formatTelegramErrorMessage(result.error),
+      "Please send an <b>image</b> (photo or picture file), not this document type.\n\nOr send two lines of text:\n<code>WP00595305</code>\n<code>V7255877</code>",
     );
     return;
   }
 
-  await telegramSendMessage(
-    chatId,
-    formatTelegramStatusMessage(result.record),
-  );
-
-  await telegramSendPermitMedia(
-    chatId,
-    result.record,
-    parsed.workPermitNumber,
-    parsed.passportNumber,
-  );
+  const text = (message.text ?? message.caption ?? "").trim();
+  if (text) {
+    await handleTextMessage(chatId, text);
+    return;
+  }
 }

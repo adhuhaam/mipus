@@ -3,6 +3,8 @@ import { handleTelegramUpdate } from "@/lib/telegram-handler";
 import { verifyTelegramSecret } from "@/lib/telegram-api";
 
 export const dynamic = "force-dynamic";
+/** OCR + API lookup can be slow on cold start */
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   if (!process.env.TELEGRAM_BOT_TOKEN) {

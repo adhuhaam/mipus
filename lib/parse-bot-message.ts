@@ -2,13 +2,16 @@ export type ParsedPermitInput =
   | { ok: true; workPermitNumber: string; passportNumber: string }
   | { ok: false; error: string };
 
-const HELP_TEXT = `Send your details in two lines:
+const HELP_TEXT = `<b>Xpat Lookup bot</b>
 
+<b>Option 1 — two lines of text:</b>
 <code>WP00595305</code>
 <code>V7255877</code>
 
-Line 1 = Work permit number
-Line 2 = Passport number
+<b>Option 2 — send a photo or document</b>
+(permit card, passport page, or any clear image showing both numbers)
+
+Line 1 = Work permit · Line 2 = Passport (for text)
 
 Commands: /start /help`;
 
@@ -33,7 +36,7 @@ export function parsePermitMessage(text: string): ParsedPermitInput {
     return {
       ok: false,
       error:
-        "Please send two lines:\n\n1) Work permit (e.g. WP00595305)\n2) Passport (e.g. V7255877)",
+        "Send two lines (permit then passport), or send a <b>photo/document</b> of your permit or passport.\n\nExample:\n<code>WP00595305</code>\n<code>V7255877</code>",
     };
   }
 
@@ -56,4 +59,23 @@ export function parsePermitMessage(text: string): ParsedPermitInput {
   }
 
   return { ok: true, workPermitNumber, passportNumber };
+}
+
+export function formatOcrFailureMessage(
+  partial?: { workPermitNumber?: string; passportNumber?: string },
+): string {
+  const found: string[] = [];
+  if (partial?.workPermitNumber) found.push(`Permit: <code>${partial.workPermitNumber}</code>`);
+  if (partial?.passportNumber) found.push(`Passport: <code>${partial.passportNumber}</code>`);
+
+  let msg =
+    "❌ <b>Could not read both numbers</b> from the image.\n\nUse a clear, well-lit photo where <b>work permit (WP…)</b> and <b>passport</b> are visible.";
+
+  if (found.length) {
+    msg += `\n\nFound only:\n${found.join("\n")}\n\nSend the missing number as text, or try another photo.`;
+  } else {
+    msg += "\n\nOr send two lines of text instead.";
+  }
+
+  return msg;
 }

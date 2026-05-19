@@ -37,12 +37,16 @@ No extra `vercel.json` is required.
 
 ## Telegram bot
 
-Users send **two lines** (work permit, then passport):
+Users can either:
+
+**Text** — two lines (work permit, then passport):
 
 ```
 WP00595305
 V7255877
 ```
+
+**Photo or image document** — permit card, passport page, etc. The bot runs OCR, finds both numbers, then looks up the record.
 
 The bot replies with status text, employee photo, and permit card image.
 
