@@ -1,10 +1,4 @@
-import {
-  buildCardUrl,
-  buildImageUrl,
-  parsePhotoIds,
-  xpatHeaders,
-} from "@/lib/xpat-api";
-import type { WorkPermitRecord } from "@/types/work-permit";
+import { buildCardUrl, xpatHeaders } from "@/lib/xpat-api";
 
 function botBase(): string {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -114,28 +108,12 @@ async function fetchProtectedImage(url: string): Promise<{
   }
 }
 
+/** Sends permit card image only (no employee photo). */
 export async function telegramSendPermitMedia(
   chatId: number,
-  record: WorkPermitRecord,
   workPermitNumber: string,
   passportNumber: string,
 ): Promise<void> {
-  const photoIds = parsePhotoIds(record.photoUrl);
-  if (photoIds) {
-    const img = await fetchProtectedImage(
-      buildImageUrl(photoIds.photoId, photoIds.serviceId),
-    );
-    if (img) {
-      await telegramSendPhoto(
-        chatId,
-        img.bytes,
-        "photo.jpg",
-        img.mime,
-        "📷 Employee photo",
-      );
-    }
-  }
-
   const card = await fetchProtectedImage(
     buildCardUrl(workPermitNumber, passportNumber),
   );
