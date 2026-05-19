@@ -12,25 +12,61 @@ function botBase(): string {
   return `https://api.telegram.org/bot${token}`;
 }
 
+const START_HELP_KEYBOARD = {
+  keyboard: [[{ text: "/help" }, { text: "/start" }]],
+  resize_keyboard: true,
+  is_persistent: true,
+};
+
 export async function telegramSendMessage(
   chatId: number,
   text: string,
+  options?: { replyKeyboard?: boolean },
 ): Promise<void> {
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  };
+  if (options?.replyKeyboard) {
+    body.reply_markup = START_HELP_KEYBOARD;
+  }
+
   const res = await fetch(`${botBase()}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: "HTML",
-      disable_web_page_preview: true,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    console.error("Telegram sendMessage failed", res.status, body);
+    const errBody = await res.text();
+    console.error("Telegram sendMessage failed", res.status, errBody);
   }
+}
+
+/** Help / start instructions with /help and /start keyboard buttons. */
+export async function telegramSendHelpMessage(
+  chatId: number,
+  text: string,
+): Promise<void> {
+  await telegramSendMessage(chatId, text, { replyKeyboard: true });
+}
+
+/** Register /help and /start in Telegram’s command menu (call after deploy). */
+export async function telegramSetBotCommands(): Promise<boolean> {
+  const res = await fetch(`${botBase()}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      commands: [
+        { command: "help", description: "Show instructions" },
+        { command: "start", description: "Show instructions" },
+      ],
+    }),
+  });
+  const data = (await res.json()) as { ok?: boolean };
+  return Boolean(data.ok);
 }
 
 async function telegramSendPhoto(

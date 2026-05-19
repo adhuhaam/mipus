@@ -8,6 +8,7 @@ import {
 import { processPermitLookup } from "@/lib/telegram-process-lookup";
 import {
   telegramDownloadFile,
+  telegramSendHelpMessage,
   telegramSendMessage,
 } from "@/lib/telegram-api";
 
@@ -110,13 +111,17 @@ async function handleTextMessage(
   text: string,
 ): Promise<void> {
   if (text === "/start" || text === "/help") {
-    await telegramSendMessage(chatId, getBotHelpText());
+    await telegramSendHelpMessage(chatId, getBotHelpText());
     return;
   }
 
   const parsed = parsePermitMessage(text);
   if (!parsed.ok) {
-    await telegramSendMessage(chatId, parsed.error);
+    if (parsed.error === getBotHelpText()) {
+      await telegramSendHelpMessage(chatId, parsed.error);
+    } else {
+      await telegramSendMessage(chatId, parsed.error);
+    }
     return;
   }
 
