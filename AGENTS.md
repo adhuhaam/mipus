@@ -2,14 +2,26 @@
 
 ## Cursor Cloud specific instructions
 
-This repository (`mipus`) is currently empty — it contains only a `README.md` with the project title. There are:
+Next.js PWA for Maldives Xpat work permit lookup (`xpat-lookup-pwa`).
 
-- No application source code
-- No dependency manifests (`package.json`, `requirements.txt`, `pyproject.toml`, etc.)
-- No build/test/lint configuration
-- No services to run
+### Commands
 
-When code is added, update this section with:
-- How to install dependencies
-- How to run lint, tests, and the dev server
-- Any non-obvious environment setup requirements
+- Install: `npm install`
+- Dev: `npm run dev` (requires `XPAT_API_KEY` in `.env.local`)
+- Build: `npm run build`
+- Lint: `npm run lint`
+
+### Environment
+
+- `XPAT_API_KEY` — required for API proxy routes (`lib/xpat-api.ts`). Set in Vercel project settings for production.
+
+### Architecture
+
+- UI: `app/page.tsx` → `components/LookupApp.tsx` (client)
+- Proxies: `app/api/work-permit/*` → `mobile-xpat.egov.mv/api/v1`
+- PWA: `public/manifest.webmanifest`, `public/sw.js`, registered in `components/PwaRegister.tsx`
+
+### Gotchas
+
+- Upstream API requires **both** work permit number and passport number; single-field lookup returns 400.
+- Do not expose `XPAT_API_KEY` in client bundles; always use API routes.
