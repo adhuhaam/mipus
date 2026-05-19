@@ -10,6 +10,7 @@ A minimal Progressive Web App to look up Maldives work permits — same data as 
 - Full permit card PNG via `/WorkPermitCard/GetWorkPermitCard`
 - Link to official QR verification URL (`verifyUrl`)
 - Installable PWA (manifest + service worker)
+- **Document scan** (camera/upload) via server **PaddleOCR** (PP-OCRv4, MIT) — same engine as the Telegram bot
 - API key kept **server-side** via Next.js route handlers (safe for Vercel)
 
 ## Local development
@@ -46,7 +47,7 @@ WP00595305
 V7255877
 ```
 
-**Photo or image document** — permit card, passport page, etc. The bot runs **PaddleOCR** (open source, via `@gutenye/ocr-node`), finds both numbers, then looks up the record. First scan after deploy may be slower while models load; later scans are much faster (~5–15s).
+**Photo or image document** — permit card, passport page, etc. The bot and PWA use **PaddleOCR** (open source, via `@gutenye/ocr-node`), find both numbers, then look up the record. First scan after deploy may be slower while models load; later scans are much faster (~5–15s).
 
 The bot replies with status text, employee photo, and permit card image.
 

@@ -5,13 +5,12 @@ export async function preprocessOcrImage(input: Buffer): Promise<Buffer> {
   return sharp(input)
     .rotate()
     .resize({
-      width: 1600,
-      height: 1600,
+      width: 1280,
+      height: 1280,
       fit: "inside",
       withoutEnlargement: true,
     })
     .normalize()
-    .sharpen({ sigma: 0.8 })
-    .jpeg({ quality: 90, mozjpeg: true })
+    .jpeg({ quality: 85, mozjpeg: true })
     .toBuffer();
 }

@@ -35,7 +35,11 @@ function linesToText(lines: OcrLine[]): string {
 export async function scanBufferForPermitFieldsServer(
   image: Buffer,
 ): Promise<ExtractedPermitFields> {
-  const processed = await preprocessOcrImage(image);
+  const [processed, ocr] = await Promise.all([
+    preprocessOcrImage(image),
+    loadGutenOcr(),
+  ]);
+
   const tmpPath = path.join(
     os.tmpdir(),
     `xpat-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`,
@@ -44,7 +48,6 @@ export async function scanBufferForPermitFieldsServer(
   await fs.writeFile(tmpPath, processed);
 
   try {
-    const ocr = await loadGutenOcr();
     const lines = await ocr.detect(tmpPath);
     return extractPermitFields(linesToText(lines));
   } finally {
