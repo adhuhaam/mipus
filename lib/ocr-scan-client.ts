@@ -5,10 +5,7 @@ export type OcrProgress = {
   progress: number;
 };
 
-/**
- * PWA scan: upload image to server PaddleOCR (PP-OCRv4).
- * Faster and more accurate than running WASM OCR in the browser.
- */
+/** PWA scan: POST image to server Tesseract OCR, then auto-lookup. */
 export async function scanDocumentForPermitFields(
   file: File,
   onProgress?: (p: OcrProgress) => void,
@@ -34,7 +31,9 @@ export async function scanDocumentForPermitFields(
     const msg =
       body && "error" in body && typeof body.error === "string"
         ? body.error
-        : "Document scan failed";
+        : res.status === 504
+          ? "Scan timed out. Enter numbers manually or try again."
+          : "Document scan failed";
     throw new Error(msg);
   }
 

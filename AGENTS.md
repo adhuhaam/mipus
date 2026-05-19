@@ -2,33 +2,29 @@
 
 ## Cursor Cloud specific instructions
 
-Next.js PWA for Maldives Xpat work permit lookup (`xpat-lookup-pwa`).
+Next.js PWA + Telegram bot for Maldives Xpat work permit lookup.
 
 ### Commands
 
-- Install: `npm install`
-- Dev: `npm run dev` (requires `XPAT_API_KEY` in `.env.local`)
-- Build: `npm run build`
-- Lint: `npm run lint`
+- `npm install` / `npm run dev` / `npm run build` / `npm run lint`
+- Dev needs `XPAT_API_KEY` in `.env.local`
 
 ### Environment
 
-- `XPAT_API_KEY` — required for API proxy routes (`lib/xpat-api.ts`). Set in Vercel project settings for production.
-- `TELEGRAM_BOT_TOKEN` — required for `/api/telegram/webhook`.
-- `TELEGRAM_WEBHOOK_SECRET` — optional; set same value when calling `scripts/telegram-set-webhook.mjs`.
+- `XPAT_API_KEY` — required for lookups
+- `TELEGRAM_BOT_TOKEN` — required for bot
+- `TELEGRAM_WEBHOOK_SECRET` — optional but recommended; must match `scripts/telegram-set-webhook.mjs`
 
 ### Architecture
 
-- UI: `app/page.tsx` → `components/LookupApp.tsx` (client)
-- Proxies: `app/api/work-permit/*` → `mobile-xpat.egov.mv/api/v1`
-- Telegram: `app/api/telegram/webhook` → `lib/telegram-handler.ts`
-- OCR: `lib/ocr-scan-server.ts` (PaddleOCR / `@gutenye/ocr-node` + `sharp` preprocess), exposed as `POST /api/ocr`; PWA uses `lib/ocr-scan-client.ts`
-- OCR warm-up: `warmOcrEngine()` on `/api/ocr` and `/api/telegram/webhook` only
-- Vercel size: `next.config.ts` `outputFileTracingExcludes` strips non-Linux ONNX + CUDA from lambdas
-- PWA: `public/manifest.webmanifest`, `public/sw.js`, registered in `components/PwaRegister.tsx`
+- UI: `components/LookupApp.tsx` — manual form + `DocumentScan` → `POST /api/ocr` → lookup
+- OCR: `lib/ocr-scan-server.ts` — **Tesseract.js** + `sharp` preprocess (not PaddleOCR)
+- Telegram: `lib/telegram-handler.ts` — text or photo → OCR or parse → `lib/telegram-process-lookup.ts`
+- Proxies: `app/api/work-permit/*`
 
 ### Gotchas
 
-- Upstream API requires **both** work permit number and passport number; single-field lookup returns 400.
-- Do not expose `XPAT_API_KEY` in client bundles; always use API routes.
-- OCR routes use `maxDuration = 60`; Vercel Hobby has a 10s default — use Pro or Fluid Compute if scans time out.
+- Both permit + passport required upstream (400 if one missing).
+- Bot 401 = `TELEGRAM_WEBHOOK_SECRET` mismatch with Telegram `secret_token`.
+- OCR routes: `maxDuration = 60` in route + `vercel.json`.
+- PWA service worker v2: network-first HTML; do not cache `/_next` chunks.
