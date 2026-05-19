@@ -23,7 +23,8 @@ Next.js PWA for Maldives Xpat work permit lookup (`xpat-lookup-pwa`).
 - Proxies: `app/api/work-permit/*` → `mobile-xpat.egov.mv/api/v1`
 - Telegram: `app/api/telegram/webhook` → `lib/telegram-handler.ts`
 - OCR: `lib/ocr-scan-server.ts` (PaddleOCR / `@gutenye/ocr-node` + `sharp` preprocess), exposed as `POST /api/ocr`; PWA uses `lib/ocr-scan-client.ts`
-- OCR warm-up: `instrumentation.ts` + `warmOcrEngine()` on webhook/OCR routes
+- OCR warm-up: `warmOcrEngine()` on `/api/ocr` and `/api/telegram/webhook` only
+- Vercel size: `next.config.ts` `outputFileTracingExcludes` strips non-Linux ONNX + CUDA from lambdas
 - PWA: `public/manifest.webmanifest`, `public/sw.js`, registered in `components/PwaRegister.tsx`
 
 ### Gotchas
